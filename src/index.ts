@@ -7,12 +7,15 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
+import { CallToolRequestSchema, ListToolsRequestSchema, GetPromptRequestSchema, ListPromptsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 
 // Import tool infrastructure
 import { allTools } from './tools/definitions.js';
 import { getToolHandler } from './tools/registry.js';
+
+// Import prompts
+import { allPrompts, swipeoneAssistantPromptContent } from './prompts/definitions.js';
 
 // Import schemas
 import {
@@ -55,11 +58,39 @@ const server = new Server(
     {
         capabilities: {
             tools: {},
+            prompts: {},
         },
     }
 );
 
 logger.info('Initializing SwipeOne MCP Server');
+
+// Handler for listing available prompts
+server.setRequestHandler(ListPromptsRequestSchema, async () => {
+    logger.debug('Listing available prompts', { count: allPrompts.length });
+    return { prompts: allPrompts };
+});
+
+// Handler for getting prompt content
+server.setRequestHandler(GetPromptRequestSchema, async (request) => {
+    const { name } = request.params;
+
+    if (name === 'swipeone_assistant') {
+        return {
+            messages: [
+                {
+                    role: 'user',
+                    content: {
+                        type: 'text',
+                        text: swipeoneAssistantPromptContent,
+                    },
+                },
+            ],
+        };
+    }
+
+    throw new Error(`Unknown prompt: ${name}`);
+});
 
 // Handler for listing available tools
 server.setRequestHandler(ListToolsRequestSchema, async () => {

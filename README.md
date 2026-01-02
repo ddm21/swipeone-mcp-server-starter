@@ -7,6 +7,7 @@ TypeScript MCP server exposing SwipeOne API endpoints as tools for ChatGPT and o
 - ✅ **Contact Management**: Get properties, search, and retrieve contacts
 - ✅ **Notes Management**: Create, retrieve, and update notes
 - ✅ **Task Management**: Create, retrieve, and update tasks
+- ✅ **MCP Prompts**: Built-in guidance for ChatGPT on tool usage
 - 🔒 **Secure**: API key authentication with error handling
 - ✨ **Type-Safe**: Full TypeScript with Zod validation
 
@@ -47,6 +48,14 @@ npm run inspector
 - **`create_task`** - Create a task in a workspace
 - **`retrieve_all_tasks`** - Get all tasks in a workspace
 - **`update_task`** - Update an existing task
+
+### MCP Prompts
+
+The server includes a built-in prompt that guides ChatGPT on how to use SwipeOne tools effectively:
+
+- **`swipeone_assistant`** - Comprehensive guide on tool capabilities, best practices, and workflow examples
+
+ChatGPT will automatically use this prompt to provide better assistance when working with your SwipeOne data.
 
 ## Configuration
 
@@ -122,6 +131,7 @@ See [ADDING_TOOLS.md](./ADDING_TOOLS.md) for step-by-step guide.
 ## Documentation
 
 - [ADDING_TOOLS.md](./ADDING_TOOLS.md) - Guide for adding new tools
+- [MCP_PROMPTS.md](./MCP_PROMPTS.md) - Guide for MCP prompts and ChatGPT guidance
 - [OAUTH_STRATEGY.md](./OAUTH_STRATEGY.md) - OAuth integration strategy
 - [CHATGPT_APPS_ANALYSIS.md](./CHATGPT_APPS_ANALYSIS.md) - ChatGPT Apps compatibility
 - [API-ENDPOINTS-EXAMPLE.md](./API-ENDPOINTS-EXAMPLE.md) - API endpoint examples
