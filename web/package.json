@@ -1,0 +1,20 @@
+{
+    "name": "swipeone-mcp-ui",
+    "version": "1.0.0",
+    "description": "UI components for SwipeOne MCP Server",
+    "type": "module",
+    "scripts": {
+        "build": "esbuild src/component.tsx --bundle --format=esm --outfile=dist/component.js --jsx=automatic --loader:.tsx=tsx --loader:.ts=tsx",
+        "dev": "npm run build -- --watch"
+    },
+    "dependencies": {
+        "react": "^18.3.1",
+        "react-dom": "^18.3.1"
+    },
+    "devDependencies": {
+        "@types/react": "^18.3.12",
+        "@types/react-dom": "^18.3.1",
+        "esbuild": "^0.24.0",
+        "typescript": "^5.7.2"
+    }
+}

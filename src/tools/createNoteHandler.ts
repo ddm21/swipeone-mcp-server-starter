@@ -6,7 +6,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { ToolHandler } from '../types/toolHandler.js';
 import type { CreateNoteInput } from '../schemas/toolSchemas.js';
 import { apiClient } from '../services/apiClient.js';
-import { successResponse, errorResponse } from '../utils/responseFormatter.js';
+import { uiResponse, errorResponse } from '../utils/responseFormatter.js';
 import { logger } from '../utils/logger.js';
 import { SwipeOneAPIError } from '../types/index.js';
 
@@ -33,7 +33,7 @@ export class CreateNoteHandler implements ToolHandler<CreateNoteInput> {
                 noteId: response?.data?.note?._id || 'unknown',
             });
 
-            return successResponse(response);
+            return uiResponse('create_note', response, 'created');
         } catch (error) {
             logger.error('Failed to create note', error);
 

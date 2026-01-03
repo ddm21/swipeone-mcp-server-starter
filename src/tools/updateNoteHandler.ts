@@ -6,7 +6,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { ToolHandler } from '../types/toolHandler.js';
 import type { UpdateNoteInput } from '../schemas/toolSchemas.js';
 import { apiClient } from '../services/apiClient.js';
-import { successResponse, errorResponse } from '../utils/responseFormatter.js';
+import { uiResponse, errorResponse } from '../utils/responseFormatter.js';
 import { logger } from '../utils/logger.js';
 import { SwipeOneAPIError } from '../types/index.js';
 
@@ -37,7 +37,7 @@ export class UpdateNoteHandler implements ToolHandler<UpdateNoteInput> {
                 noteId,
             });
 
-            return successResponse(response);
+            return uiResponse('update_note', response, 'updated');
         } catch (error) {
             logger.error('Failed to update note', error);
 
