@@ -6,9 +6,12 @@
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
 import { CallToolRequestSchema, ListToolsRequestSchema, GetPromptRequestSchema, ListPromptsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
+import express from 'express';
+import type { Request, Response } from 'express';
+import cors from 'cors';
 
 // Import tool infrastructure
 import { allTools } from './tools/definitions.js';
@@ -99,7 +102,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
 });
 
 // Handler for executing tools
-server.setRequestHandler(CallToolRequestSchema, async (request) => {
+server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
     const { name, arguments: args } = request.params;
 
     logger.info('Tool execution requested', { toolName: name });
@@ -184,16 +187,35 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 });
 
-// Start the server
+// Start the HTTP server
 async function main() {
-    try {
-        const transport = new StdioServerTransport();
+    const app = express();
+    const port = process.env.PORT || 3000;
+
+    app.use(cors());
+
+    // Set up SSE transport
+    let transport: SSEServerTransport;
+
+    app.get('/sse', async (_req: Request, res: Response) => {
+        logger.info('New SSE connection established');
+        transport = new SSEServerTransport('/messages', res);
         await server.connect(transport);
-        logger.info('SwipeOne MCP Server running on stdio');
-    } catch (error) {
-        logger.error('Failed to start server', error);
-        process.exit(1);
-    }
+    });
+
+    app.post('/messages', async (req: Request, res: Response) => {
+        if (!transport) {
+            res.sendStatus(400);
+            return;
+        }
+        await transport.handlePostMessage(req, res);
+    });
+
+    app.listen(port, () => {
+        logger.info(`SwipeOne MCP Server running on port ${port}`);
+        logger.info(`SSE endpoint: http://localhost:${port}/sse`);
+        logger.info(`Message endpoint: http://localhost:${port}/messages`);
+    });
 }
 
 main().catch((error) => {
