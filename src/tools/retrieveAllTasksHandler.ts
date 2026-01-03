@@ -6,7 +6,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { ToolHandler, ToolContext } from '../types/toolHandler.js';
 import type { RetrieveAllTasksInput } from '../schemas/toolSchemas.js';
 import { apiClient } from '../services/apiClient.js';
-import { successResponse, errorResponse } from '../utils/responseFormatter.js';
+import { uiResponse, errorResponse } from '../utils/responseFormatter.js';
 import { logger } from '../utils/logger.js';
 import { SwipeOneAPIError } from '../types/index.js';
 
@@ -36,7 +36,7 @@ export class RetrieveAllTasksHandler implements ToolHandler<RetrieveAllTasksInpu
                 page: response.data.page,
             });
 
-            return successResponse(response);
+            return uiResponse('retrieve_all_tasks', response);
         } catch (error) {
             logger.error('Failed to retrieve tasks', error);
 

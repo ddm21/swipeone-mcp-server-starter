@@ -6,7 +6,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { ToolHandler } from '../types/toolHandler.js';
 import type { UpdateTaskInput } from '../schemas/toolSchemas.js';
 import { apiClient } from '../services/apiClient.js';
-import { successResponse, errorResponse } from '../utils/responseFormatter.js';
+import { uiResponse, errorResponse } from '../utils/responseFormatter.js';
 import { logger } from '../utils/logger.js';
 import { SwipeOneAPIError } from '../types/index.js';
 
@@ -50,7 +50,7 @@ export class UpdateTaskHandler implements ToolHandler<UpdateTaskInput> {
                 taskId,
             });
 
-            return successResponse(response);
+            return uiResponse('update_task', response, 'updated');
         } catch (error) {
             logger.error('Failed to update task', error);
 

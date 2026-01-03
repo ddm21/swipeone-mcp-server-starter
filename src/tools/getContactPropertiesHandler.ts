@@ -6,7 +6,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { ToolHandler, ToolContext } from '../types/toolHandler.js';
 import type { GetContactPropertiesInput } from '../schemas/toolSchemas.js';
 import { apiClient } from '../services/apiClient.js';
-import { successResponse, errorResponse } from '../utils/responseFormatter.js';
+import { uiResponse, errorResponse } from '../utils/responseFormatter.js';
 import { logger } from '../utils/logger.js';
 import { SwipeOneAPIError } from '../types/index.js';
 
@@ -27,7 +27,7 @@ export class GetContactPropertiesHandler implements ToolHandler<GetContactProper
                 count: response.data.count,
             });
 
-            return successResponse(response);
+            return uiResponse('get_contact_properties', response);
         } catch (error) {
             logger.error('Failed to fetch contact properties', error);
 
