@@ -82,7 +82,9 @@ export function useWidgetState<T = any>(
     const setWidgetState = useCallback(
         (state: T | ((prev: T | null) => T | null)) => {
             _setWidgetState((prevState) => {
-                const newState = typeof state === 'function' ? state(prevState) : state;
+                const newState = typeof state === 'function'
+                    ? (state as (prev: T | null) => T | null)(prevState)
+                    : state;
 
                 if (newState != null && window.openai?.setWidgetState) {
                     window.openai.setWidgetState(newState);

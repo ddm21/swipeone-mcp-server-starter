@@ -6,6 +6,7 @@ import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { escapeJSONForHTML } from './htmlEscape.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -54,6 +55,9 @@ export function uiResponse(toolName: string, data: any, action?: string): CallTo
         action,
     };
 
+    // Safely escape JSON for HTML embedding to prevent XSS
+    const escapedToolOutput = escapeJSONForHTML(toolOutput);
+
     return {
         content: [
             {
@@ -66,6 +70,9 @@ export function uiResponse(toolName: string, data: any, action?: string): CallTo
             'openai/widgetCSP': {
                 connect_domains: ['https://chatgpt.com'],
                 resource_domains: ['https://*.oaistatic.com'],
+                // Stricter CSP to prevent XSS
+                script_src: ["'self'", "'unsafe-inline'"],
+                style_src: ["'self'", "'unsafe-inline'"],
             },
             'openai/widgetHTML': `
 <!DOCTYPE html>
@@ -73,13 +80,14 @@ export function uiResponse(toolName: string, data: any, action?: string): CallTo
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src https://chatgpt.com;">
     <title>SwipeOne UI</title>
 </head>
 <body>
     <div id="root"></div>
     <script type="module">
         window.openai = window.openai || {};
-        window.openai.toolOutput = ${JSON.stringify(toolOutput)};
+        window.openai.toolOutput = JSON.parse('${escapedToolOutput}');
         ${uiComponent}
     </script>
 </body>

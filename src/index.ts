@@ -6,11 +6,11 @@
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { SSEServerTransport } from '@modelcontextprotocol/sdk/server/sse.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { CallToolRequestSchema, ListToolsRequestSchema, GetPromptRequestSchema, ListPromptsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
 import express from 'express';
-import type { Request, Response } from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 
 // Import tool infrastructure
@@ -38,6 +38,10 @@ import { resolveWorkspaceId } from './utils/workspaceResolver.js';
 import { errorResponse, validationErrorResponse } from './utils/responseFormatter.js';
 import { logger } from './utils/logger.js';
 import { rateLimiter } from './utils/rateLimiter.js';
+import { serverConfig } from './config/environment.js';
+
+// Import middleware
+import { authMiddleware, type AuthenticatedRequest } from './middleware/auth.js';
 
 // Schema registry for validation
 const schemaRegistry: Record<string, z.ZodSchema> = {
@@ -120,6 +124,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request: any) => {
                 {
                     retryAfter: rateLimitCheck.retryAfter,
                     limit: rateLimitCheck.limit,
+                    headers: {
+                        'X-RateLimit-Limit': rateLimitCheck.limit?.requests,
+                        'X-RateLimit-Remaining': 0,
+                        'Retry-After': rateLimitCheck.retryAfter,
+                    },
                 }
             );
         }
@@ -192,29 +201,127 @@ async function main() {
     const app = express();
     const port = process.env.PORT || 3000;
 
-    app.use(cors());
+    // Configure CORS - allow all origins in development, specific origins in production
+    const corsOptions = {
+        origin: serverConfig.nodeEnv === 'development' ? true : serverConfig.allowedOrigins,
+        credentials: true,
+        methods: ['GET', 'POST', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+    };
+    app.use(cors(corsOptions));
 
-    // Set up SSE transport
-    let transport: SSEServerTransport;
+    // Trust proxy headers when behind ngrok or other reverse proxies
+    app.set('trust proxy', true);
 
-    app.get('/sse', async (_req: Request, res: Response) => {
-        logger.info('New SSE connection established');
-        transport = new SSEServerTransport('/messages', res);
-        await server.connect(transport);
+    // Middleware to handle ngrok and other proxy Host headers
+    app.use((req: Request, _res: Response, next: NextFunction) => {
+        const host = req.headers.host;
+        // If request comes from ngrok or other proxy, normalize the host header
+        if (host && (host.includes('ngrok') || host.includes('.app') || host.includes('.io'))) {
+            logger.debug('Normalizing proxy host header', { originalHost: host, newHost: `localhost:${port}` });
+            req.headers.host = `localhost:${port}`;
+        }
+        next();
     });
 
-    app.post('/messages', async (req: Request, res: Response) => {
-        if (!transport) {
-            res.sendStatus(400);
-            return;
+    // Add request size limits to prevent DoS
+    app.use(express.json({ limit: '1mb' }));
+
+    // Log CORS configuration
+    logger.info('CORS configured', {
+        mode: serverConfig.nodeEnv === 'development' ? 'allow-all' : 'restricted',
+        allowedOrigins: serverConfig.nodeEnv === 'development' ? ['*'] : serverConfig.allowedOrigins
+    });
+
+    // Apply authentication middleware if enabled
+    if (serverConfig.authEnabled) {
+        logger.info('Authentication enabled', { mode: serverConfig.authMode });
+        app.use(authMiddleware);
+    } else {
+        logger.warn('Authentication disabled - not recommended for production');
+    }
+
+    // No need to store transports - StreamableHTTPServerTransport handles session management internally
+
+    // Request logging middleware for debugging
+    app.use((req: Request, _res: Response, next: NextFunction) => {
+        logger.debug('Incoming request', {
+            method: req.method,
+            path: req.path,
+            query: req.query,
+            headers: {
+                'content-type': req.headers['content-type'],
+                'content-length': req.headers['content-length'],
+                'mcp-session-id': req.headers['mcp-session-id'],
+            },
+        });
+        next();
+    });
+
+    // Health check endpoint
+    app.get('/', (_req: Request, res: Response) => {
+        res.json({
+            name: 'SwipeOne MCP Server',
+            version: '1.0.0',
+            status: 'running',
+            endpoints: {
+                mcp: '/mcp',
+            },
+        });
+    });
+
+    // MCP endpoint - handles both GET (SSE) and POST (messages) using Streamable HTTP
+    app.all('/mcp', async (req: AuthenticatedRequest, res: Response) => {
+        logger.info('MCP request received', {
+            method: req.method,
+            sessionId: req.headers['mcp-session-id'],
+            userId: req.user?.userId,
+            authEnabled: serverConfig.authEnabled,
+        });
+
+        try {
+            // Create transport for this request
+            // The SDK manages session IDs internally via mcp-session-id header
+            const transport = new StreamableHTTPServerTransport();
+
+            // Ensure onclose is defined to satisfy Transport interface requirements
+            // This is required because StreamableHTTPServerTransport has onclose?: (() => void) | undefined,
+            // but Transport interface requires onclose: () => void (never undefined)
+            if (!transport.onclose) {
+                transport.onclose = () => { };
+            }
+
+            // Connect to MCP server
+            await server.connect(transport as any);
+
+            // Handle the request (works for both GET and POST)
+            await transport.handleRequest(req, res);
+
+            logger.debug('MCP request handled successfully', {
+                method: req.method,
+                sessionId: req.headers['mcp-session-id']
+            });
+        } catch (error) {
+            logger.error('Error handling MCP request', {
+                error: error instanceof Error ? error.message : 'Unknown error',
+                method: req.method,
+                sessionId: req.headers['mcp-session-id'],
+            });
+
+            if (!res.headersSent) {
+                res.status(500).json({
+                    error: 'Internal server error',
+                    message: error instanceof Error ? error.message : 'Unknown error',
+                });
+            }
         }
-        await transport.handlePostMessage(req, res);
     });
 
     app.listen(port, () => {
         logger.info(`SwipeOne MCP Server running on port ${port}`);
-        logger.info(`SSE endpoint: http://localhost:${port}/sse`);
-        logger.info(`Message endpoint: http://localhost:${port}/messages`);
+        logger.info(`Health check: http://localhost:${port}/`);
+        logger.info(`MCP endpoint: http://localhost:${port}/mcp`);
+        logger.info(`Environment: ${serverConfig.nodeEnv}`);
     });
 }
 

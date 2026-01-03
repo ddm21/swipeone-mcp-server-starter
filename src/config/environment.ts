@@ -16,7 +16,10 @@ dotenv.config({ path: join(__dirname, '..', '..', '.env') });
 
 // Environment variable schema
 const envSchema = z.object({
-    SWIPEONE_API_KEY: z.string().min(1, 'API key is required'),
+    SWIPEONE_API_KEY: z
+        .string()
+        .min(32, 'API key must be at least 32 characters')
+        .regex(/^[A-Za-z0-9_-]+$/, 'API key contains invalid characters'),
     SWIPEONE_API_BASE_URL: z.string().url().default('https://api.swipeone.com/api'),
     API_TIMEOUT: z.coerce.number().default(30000),
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
@@ -28,6 +31,26 @@ const envSchema = z.object({
         .default('true')
         .transform((val) => val === 'true' || val === '1'),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+    // Authentication configuration
+    AUTH_ENABLED: z
+        .string()
+        .default('false')
+        .transform((val) => val === 'true' || val === '1'),
+    AUTH_MODE: z.enum(['oauth', 'mock']).default('mock'),
+    MOCK_AUTH_TOKEN: z.string().default('dev_token_12345'),
+    // CORS configuration
+    ALLOWED_ORIGINS: z.string().default('http://localhost:3000,http://localhost:5173'),
+    // SSL/TLS configuration
+    SSL_CERT_PATH: z.string().optional(),
+    SSL_KEY_PATH: z.string().optional(),
+    ENABLE_HTTPS: z
+        .string()
+        .default('false')
+        .transform((val) => val === 'true' || val === '1'),
+    FORCE_HTTPS: z
+        .string()
+        .default('false')
+        .transform((val) => val === 'true' || val === '1'),
 });
 
 // Load and validate environment variables
@@ -40,6 +63,14 @@ function loadEnvironment() {
         DEFAULT_WORKSPACE_ID: process.env.DEFAULT_WORKSPACE_ID,
         ENABLE_RATE_LIMITING: process.env.ENABLE_RATE_LIMITING || 'true',
         LOG_LEVEL: process.env.LOG_LEVEL || 'info',
+        AUTH_ENABLED: process.env.AUTH_ENABLED || 'false',
+        AUTH_MODE: process.env.AUTH_MODE || 'mock',
+        MOCK_AUTH_TOKEN: process.env.MOCK_AUTH_TOKEN || 'dev_token_12345',
+        ALLOWED_ORIGINS: process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173',
+        SSL_CERT_PATH: process.env.SSL_CERT_PATH,
+        SSL_KEY_PATH: process.env.SSL_KEY_PATH,
+        ENABLE_HTTPS: process.env.ENABLE_HTTPS || 'false',
+        FORCE_HTTPS: process.env.FORCE_HTTPS || 'false',
     };
 
     try {
@@ -70,7 +101,16 @@ export const serverConfig = {
     apiBaseUrl: config.SWIPEONE_API_BASE_URL,
     apiKey: config.SWIPEONE_API_KEY,
     timeout: config.API_TIMEOUT,
+    nodeEnv: config.NODE_ENV,
     defaultWorkspaceId: config.DEFAULT_WORKSPACE_ID,
     enableRateLimiting: config.ENABLE_RATE_LIMITING,
     logLevel: config.LOG_LEVEL,
+    authEnabled: config.AUTH_ENABLED,
+    authMode: config.AUTH_MODE,
+    mockAuthToken: config.MOCK_AUTH_TOKEN,
+    allowedOrigins: config.ALLOWED_ORIGINS.split(',').map((origin) => origin.trim()),
+    sslCertPath: config.SSL_CERT_PATH,
+    sslKeyPath: config.SSL_KEY_PATH,
+    enableHttps: config.ENABLE_HTTPS,
+    forceHttps: config.FORCE_HTTPS,
 };

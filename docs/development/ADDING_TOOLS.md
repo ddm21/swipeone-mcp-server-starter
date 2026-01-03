@@ -11,6 +11,16 @@
 7. **Export Handler** → `src/tools/index.ts`
 8. **Add to Schema Registry** → `src/index.ts`
 
+## Security Note
+
+> **Important:** All tool handlers automatically benefit from:
+> - **Input Validation**: Zod schemas validate all inputs
+> - **XSS Prevention**: `uiResponse()` escapes HTML automatically
+> - **Authentication**: User context available via `ToolContext`
+> - **Rate Limiting**: Applied per-tool automatically
+> 
+> See [SECURITY.md](./SECURITY.md) for details.
+
 ## Example: Create Note Tool
 
 ### 1. Types (`src/types/index.ts`)
@@ -56,11 +66,17 @@ import { logger } from '../utils/logger.js';
 import { SwipeOneAPIError } from '../types/index.js';
 
 export class CreateNoteHandler implements ToolHandler<CreateNoteInput> {
-    async execute(input: CreateNoteInput): Promise<CallToolResult> {
+    async execute(input: CreateNoteInput, context: ToolContext): Promise<CallToolResult> {
         try {
             const { contactId, title, content } = input;
+            
+            // User context available from authentication
+            // context.workspaceId, context.userId, etc.
+            
             const response = await apiClient.createNote(contactId, { title, content });
-            return successResponse(response);
+            
+            // uiResponse automatically escapes HTML to prevent XSS
+            return uiResponse('create_note', response, 'created');
         } catch (error) {
             logger.error('Failed to create note', error);
             if (error instanceof SwipeOneAPIError) {

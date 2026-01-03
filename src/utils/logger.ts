@@ -6,18 +6,18 @@ import { config } from '../config/environment.js';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
-// Sensitive keys to redact from logs
-const SENSITIVE_KEYS = [
-    'apikey',
-    'api_key',
-    'x-api-key',
-    'authorization',
-    'password',
-    'token',
-    'secret',
-    'cookie',
-    'session',
-    'credentials',
+// Sensitive patterns to redact from logs (using regex for better matching)
+const SENSITIVE_PATTERNS = [
+    /api[_-]?key/i,
+    /auth/i,
+    /token/i,
+    /secret/i,
+    /password/i,
+    /credential/i,
+    /session/i,
+    /cookie/i,
+    /bearer/i,
+    /swipeone[_-]?api[_-]?key/i,
 ];
 
 class Logger {
@@ -25,6 +25,14 @@ class Logger {
 
     constructor(prefix: string = 'MCP') {
         this.prefix = prefix;
+    }
+
+    /**
+     * Check if a key is sensitive using regex patterns
+     */
+    private isSensitiveKey(key: string): boolean {
+        const lowerKey = key.toLowerCase();
+        return SENSITIVE_PATTERNS.some((pattern) => pattern.test(lowerKey));
     }
 
     /**
@@ -48,10 +56,8 @@ class Logger {
         // Handle objects
         const sanitized: any = {};
         for (const [key, value] of Object.entries(data)) {
-            const lowerKey = key.toLowerCase();
-
             // Check if key is sensitive
-            if (SENSITIVE_KEYS.some((sensitiveKey) => lowerKey.includes(sensitiveKey))) {
+            if (this.isSensitiveKey(key)) {
                 sanitized[key] = '[REDACTED]';
             } else if (key === 'headers' && typeof value === 'object' && value !== null) {
                 // Special handling for headers object
@@ -76,8 +82,7 @@ class Logger {
     private sanitizeHeaders(headers: any): any {
         const sanitized: any = {};
         for (const [key, value] of Object.entries(headers)) {
-            const lowerKey = key.toLowerCase();
-            if (SENSITIVE_KEYS.some((sensitiveKey) => lowerKey.includes(sensitiveKey))) {
+            if (this.isSensitiveKey(key)) {
                 sanitized[key] = '[REDACTED]';
             } else {
                 sanitized[key] = value;

@@ -4,6 +4,7 @@
 
 import axios from 'axios';
 import type { AxiosInstance, AxiosError } from 'axios';
+import { randomUUID } from 'crypto';
 import { serverConfig } from '../config/environment.js';
 import { validateWorkspaceId, validateContactId, validateNoteId, validateTaskId } from '../utils/validators.js';
 import type {
@@ -28,9 +29,10 @@ import { SwipeOneAPIError } from '../types/index.js';
 
 /**
  * Generate a unique correlation ID for request tracing
+ * Uses cryptographically secure UUID for uniqueness
  */
 function generateCorrelationId(): string {
-    return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    return `req_${randomUUID()}`;
 }
 
 class SwipeOneAPIClient {
@@ -66,6 +68,14 @@ class SwipeOneAPIClient {
     }
 
     private handleError(error: AxiosError): SwipeOneAPIError {
+        // Handle timeout errors specifically
+        if (error.code === 'ECONNABORTED' || error.code === 'ETIMEDOUT') {
+            return new SwipeOneAPIError(
+                `Request timeout after ${serverConfig.timeout}ms. The API server may be slow or unavailable.`,
+                408
+            );
+        }
+
         if (error.response) {
             // Server responded with error status
             const statusCode = error.response.status;
@@ -73,7 +83,7 @@ class SwipeOneAPIClient {
             return new SwipeOneAPIError(message, statusCode, error.response.data);
         } else if (error.request) {
             // Request made but no response received
-            return new SwipeOneAPIError('No response received from API server');
+            return new SwipeOneAPIError('No response received from API server. Please check your network connection.');
         } else {
             // Error setting up the request
             return new SwipeOneAPIError(`Request setup failed: ${error.message}`);
