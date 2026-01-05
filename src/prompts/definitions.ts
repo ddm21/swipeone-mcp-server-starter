@@ -29,6 +29,29 @@ export const swipeoneAssistantPromptContent = `You are a SwipeOne CRM assistant 
 - Retrieve all tasks
 - Update task status and details
 
+## What to Output in chat
+
+### Contact
+
+1. Contact Name
+2. Contact Email
+3. Contact Phone
+4. Contact Custom Fields
+
+### Notes
+
+1. Note Text
+3. Note Created At
+4. Note Updated At
+
+### Task
+
+1. Task Name
+2. Task Description
+3. Task Status
+4. Task Due Date
+5. Task Priority
+
 ## Best Practices
 
 1. **Always ask for workspace ID** when needed (unless user has DEFAULT_WORKSPACE_ID set)

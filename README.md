@@ -1,6 +1,6 @@
 # SwipeOne MCP Server
 
-TypeScript MCP server exposing SwipeOne API endpoints as tools for ChatGPT and other MCP clients.
+TypeScript MCP server exposing SwipeOne API endpoints as tools for ChatGPT and other MCP clients via **HTTP Streamable Transport** (MCP 2025-03-26).
 
 ## Features
 
@@ -10,6 +10,7 @@ TypeScript MCP server exposing SwipeOne API endpoints as tools for ChatGPT and o
 - ✅ **MCP Prompts**: Built-in guidance for ChatGPT on tool usage
 - 🔒 **Secure**: API key authentication with error handling
 - ✨ **Type-Safe**: Full TypeScript with Zod validation
+- 🌐 **Streamable HTTP**: Modern MCP transport (replaces deprecated SSE)
 
 ## Quick Start
 
@@ -20,13 +21,15 @@ npm install
 # Configure
 cp .env.example .env
 # Edit .env and add your SWIPEONE_API_KEY
+# Optionally configure PORT (default: 3000) and HOST (default: localhost)
 
 # Build & Run
 npm run build
 npm start
 
-# Test with Inspector
-npm run inspector
+# Server will start on http://localhost:3000
+# MCP endpoint: http://localhost:3000/mcp
+# Health check: http://localhost:3000/health
 ```
 
 ## Available Tools
@@ -65,31 +68,70 @@ Create `.env` file:
 ```env
 SWIPEONE_API_KEY=your_api_key_here
 DEFAULT_WORKSPACE_ID=your_workspace_id  # Optional for testing
+
+# HTTP Server Configuration
+PORT=3000        # Port for HTTP server (default: 3000)
+HOST=localhost   # Host for HTTP server (default: localhost)
 ```
 
-### Claude Desktop Integration
+### Connecting to the Server
 
-Add to MCP settings file:
+#### HTTP Client Connection
 
-**Mac**: `~/Library/Application Support/Claude/claude_desktop_config.json`  
-**Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+The server uses **Streamable HTTP** transport (MCP 2025-03-26 specification). Connect to:
+
+**MCP Endpoint:**
+```
+http://localhost:3000/mcp
+```
+
+**For ChatGPT (via ngrok or public URL):**
+```
+https://your-ngrok-url.ngrok-free.app/mcp
+```
+
+**Setup with ngrok:**
+1. Expose your local server: `ngrok http 3000`
+2. Copy the ngrok HTTPS URL
+3. Use `https://your-url.ngrok-free.app/mcp` in ChatGPT's MCP connector
+
+#### Health Check
+
+Verify the server is running:
+
+```bash
+curl http://localhost:3000/health
+```
+
+Response:
+```json
+{
+  "status": "ok",
+  "service": "swipeone-mcp-server",
+  "version": "1.0.0",
+  "transport": "sse",
+  "endpoints": {
+    "sse": "/sse",
+    "mcp": "/mcp",
+    "health": "/health"
+  }
+}
+```
+
+#### MCP Client Configuration
+
+For MCP clients that support HTTP transport, use:
 
 ```json
 {
   "mcpServers": {
     "swipeone": {
-      "command": "node",
-      "args": ["path/to/SwipeOneMCPServer/dist/index.js"],
-      "env": {
-        "SWIPEONE_API_KEY": "your_api_key_here",
-        "DEFAULT_WORKSPACE_ID": "your_workspace_id"
-      }
+      "url": "http://localhost:3000/sse",
+      "transport": "sse"
     }
   }
 }
 ```
-
-Restart Claude Desktop.
 
 ## Project Structure
 
@@ -127,6 +169,9 @@ See [ADDING_TOOLS.md](./ADDING_TOOLS.md) for step-by-step guide.
 - **"Cannot find module"** → Run `npm install`
 - **"Environment validation failed"** → Check `.env` file has `SWIPEONE_API_KEY`
 - **"API request failed 401"** → Verify API key is correct
+- **"Port already in use"** → Change `PORT` in `.env` or stop the process using port 3000
+- **"Connection refused"** → Ensure server is running with `npm start`
+- **Server not accessible** → Check firewall settings or try `HOST=0.0.0.0` for external access
 
 ## Documentation
 

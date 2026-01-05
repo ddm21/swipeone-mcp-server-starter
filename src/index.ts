@@ -6,9 +6,10 @@
  */
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { CallToolRequestSchema, ListToolsRequestSchema, GetPromptRequestSchema, ListPromptsRequestSchema } from '@modelcontextprotocol/sdk/types.js';
 import { z } from 'zod';
+import http from 'http';
 
 // Import tool infrastructure
 import { allTools } from './tools/definitions.js';
@@ -35,6 +36,7 @@ import { resolveWorkspaceId } from './utils/workspaceResolver.js';
 import { errorResponse, validationErrorResponse } from './utils/responseFormatter.js';
 import { logger } from './utils/logger.js';
 import { rateLimiter } from './utils/rateLimiter.js';
+import { serverConfig } from './config/environment.js';
 
 // Schema registry for validation
 const schemaRegistry: Record<string, z.ZodSchema> = {
@@ -187,9 +189,80 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 // Start the server
 async function main() {
     try {
-        const transport = new StdioServerTransport();
-        await server.connect(transport);
-        logger.info('SwipeOne MCP Server running on stdio');
+        const { port, host } = serverConfig;
+
+        // Create Streamable HTTP transport
+        const transport = new StreamableHTTPServerTransport();
+
+        // Connect the server to the transport
+        // Type assertion needed due to exactOptionalPropertyTypes in tsconfig
+        await server.connect(transport as any);
+
+        // Create HTTP server
+        const httpServer = http.createServer(async (req, res) => {
+            // Set CORS headers
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
+            res.setHeader('Access-Control-Allow-Headers', 'Content-Type, mcp-session-id');
+
+            // Handle preflight requests
+            if (req.method === 'OPTIONS') {
+                res.writeHead(200);
+                res.end();
+                return;
+            }
+
+            // Health check endpoint
+            if (req.url === '/health' || req.url === '/') {
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(
+                    JSON.stringify({
+                        status: 'ok',
+                        service: 'swipeone-mcp-server',
+                        version: '1.0.0',
+                        transport: 'streamable-http',
+                        endpoints: {
+                            mcp: '/mcp',
+                            health: '/health',
+                        },
+                    })
+                );
+                return;
+            }
+
+            // MCP endpoint - handle all MCP requests
+            if (req.url === '/mcp') {
+                logger.info(`MCP ${req.method} request received`);
+
+                try {
+                    await transport.handleRequest(req, res);
+                } catch (error) {
+                    logger.error('Error handling MCP request', error);
+                    if (!res.headersSent) {
+                        res.writeHead(500, { 'Content-Type': 'application/json' });
+                        res.end(JSON.stringify({ error: 'Internal server error' }));
+                    }
+                }
+                return;
+            }
+
+            // 404 for unknown routes
+            res.writeHead(404, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Not found' }));
+        });
+
+        // Start listening
+        httpServer.listen(port, host, () => {
+            logger.info(`SwipeOne MCP Server running on http://${host}:${port}`);
+            logger.info(`MCP endpoint: http://${host}:${port}/mcp`);
+            logger.info(`Health check: http://${host}:${port}/health`);
+        });
+
+        // Handle server errors
+        httpServer.on('error', (error) => {
+            logger.error('HTTP server error', error);
+            process.exit(1);
+        });
     } catch (error) {
         logger.error('Failed to start server', error);
         process.exit(1);

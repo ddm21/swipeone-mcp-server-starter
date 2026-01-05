@@ -12,7 +12,8 @@
     "dev": "tsc --watch",
     "start": "node dist/index.js",
     "prepare": "npm run build",
-    "inspector": "npx @modelcontextprotocol/inspector node dist/index.js"
+    "inspector": "npx @modelcontextprotocol/inspector node dist/index.js",
+    "start:custom": "node dist/index.js"
   },
   "keywords": [
     "mcp",

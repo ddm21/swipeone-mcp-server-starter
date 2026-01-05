@@ -28,6 +28,9 @@ const envSchema = z.object({
         .default('true')
         .transform((val) => val === 'true' || val === '1'),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+    // HTTP Server configuration
+    PORT: z.coerce.number().default(3000),
+    HOST: z.string().default('localhost'),
 });
 
 // Load and validate environment variables
@@ -40,6 +43,8 @@ function loadEnvironment() {
         DEFAULT_WORKSPACE_ID: process.env.DEFAULT_WORKSPACE_ID,
         ENABLE_RATE_LIMITING: process.env.ENABLE_RATE_LIMITING || 'true',
         LOG_LEVEL: process.env.LOG_LEVEL || 'info',
+        PORT: process.env.PORT || '3000',
+        HOST: process.env.HOST || 'localhost',
     };
 
     try {
@@ -73,4 +78,6 @@ export const serverConfig = {
     defaultWorkspaceId: config.DEFAULT_WORKSPACE_ID,
     enableRateLimiting: config.ENABLE_RATE_LIMITING,
     logLevel: config.LOG_LEVEL,
+    port: config.PORT,
+    host: config.HOST,
 };
