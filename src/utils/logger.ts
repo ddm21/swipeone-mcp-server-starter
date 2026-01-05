@@ -93,9 +93,20 @@ class Logger {
         return config.NODE_ENV === 'development';
     }
 
+    /**
+     * Sanitize string messages to remove potential secrets
+     */
+    private sanitizeMessage(message: string): string {
+        // Redact potential key=value patterns for sensitive keys
+        // Matches: key=value, key:value, key: value
+        const pattern = new RegExp(`(${SENSITIVE_KEYS.join('|')})[:=]\\s*([^\\s]+)`, 'gi');
+        return message.replace(pattern, '$1=[REDACTED]');
+    }
+
     private log(level: LogLevel, message: string, data?: any) {
         const timestamp = new Date().toISOString();
-        const logMessage = `[${timestamp}] [${level.toUpperCase()}] [${this.prefix}] ${message}`;
+        const sanitizedMessage = this.sanitizeMessage(message);
+        const logMessage = `[${timestamp}] [${level.toUpperCase()}] [${this.prefix}] ${sanitizedMessage}`;
 
         // Sanitize data before logging
         const sanitizedData = data ? this.sanitizeData(data) : undefined;

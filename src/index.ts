@@ -36,7 +36,7 @@ import { resolveWorkspaceId } from './utils/workspaceResolver.js';
 import { errorResponse, validationErrorResponse } from './utils/responseFormatter.js';
 import { logger } from './utils/logger.js';
 import { rateLimiter } from './utils/rateLimiter.js';
-import { serverConfig } from './config/environment.js';
+import { serverConfig, config } from './config/environment.js';
 
 // Schema registry for validation
 const schemaRegistry: Record<string, z.ZodSchema> = {
@@ -200,8 +200,28 @@ async function main() {
 
         // Create HTTP server
         const httpServer = http.createServer(async (req, res) => {
+            const origin = req.headers.origin;
+            const allowedOrigins = [
+                'https://chatgpt.com',
+                'https://chat.openai.com',
+                'http://localhost:3000',
+                'http://localhost:5173'
+            ];
+
+            // Check if origin is allowed (explicit list or ngrok for dev)
+            const isAllowed = origin && (
+                allowedOrigins.includes(origin) ||
+                (config.NODE_ENV === 'development' && origin.endsWith('.ngrok-free.app'))
+            );
+
             // Set CORS headers
-            res.setHeader('Access-Control-Allow-Origin', '*');
+            if (isAllowed && origin) {
+                res.setHeader('Access-Control-Allow-Origin', origin);
+            } else {
+                // For non-allowed origins, we don't set the header, effectively blocking them
+                // Or set to null if strict blocking is desired, but omitting is standard
+            }
+
             res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
             res.setHeader('Access-Control-Allow-Headers', 'Content-Type, mcp-session-id');
 
