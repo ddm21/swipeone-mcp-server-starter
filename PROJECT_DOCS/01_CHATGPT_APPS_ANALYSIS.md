@@ -4,7 +4,7 @@
 
 **Current Status**: Your MCP server is **NOT yet compatible** with ChatGPT Apps but is **well-architected for future OAuth integration**.
 
-**Key Finding**: ChatGPT Apps require **OAuth 2.1 authentication**, but your current implementation uses **API key authentication** (`x-api-key` header). However, your codebase already has OAuth placeholders and your `OAUTH_STRATEGY.md` document is mostly correct.
+**Key Finding**: ChatGPT Apps require **OAuth 2.1 authentication**, but your current implementation uses **API key authentication** (`x-api-key` header). However, your codebase already has OAuth placeholders and your `03_OAUTH_IMPLEMENTATION_STRATEGY.md` document is mostly correct.
 
 ---
 
@@ -102,7 +102,7 @@ Response:
 
 ---
 
-## OAUTH_STRATEGY.md Review
+## 03_OAUTH_IMPLEMENTATION_STRATEGY.md Review
 
 ### ✅ What's Correct
 
@@ -380,7 +380,7 @@ const context = { workspaceId, oauthToken: authToken };
 
 ## Conclusion
 
-**Your `OAUTH_STRATEGY.md` is 90% correct** and provides an excellent roadmap. The main gaps are:
+**Your `03_OAUTH_IMPLEMENTATION_STRATEGY.md` is 90% correct** and provides an excellent roadmap. The main gaps are:
 
 1. MCP-specific OAuth context location (`request.meta.oauthContext`)
 2. Protected resource metadata requirements

@@ -162,7 +162,7 @@ npm run inspector  # Test with MCP Inspector
 
 ### Adding New Tools
 
-See [ADDING_TOOLS.md](./ADDING_TOOLS.md) for step-by-step guide.
+See [05_ADDING_NEW_TOOLS.md](./PROJECT_DOCS/05_ADDING_NEW_TOOLS.md) for step-by-step guide.
 
 ## Troubleshooting
 
@@ -175,11 +175,12 @@ See [ADDING_TOOLS.md](./ADDING_TOOLS.md) for step-by-step guide.
 
 ## Documentation
 
-- [ADDING_TOOLS.md](./ADDING_TOOLS.md) - Guide for adding new tools
-- [MCP_PROMPTS.md](./MCP_PROMPTS.md) - Guide for MCP prompts and ChatGPT guidance
-- [OAUTH_STRATEGY.md](./OAUTH_STRATEGY.md) - OAuth integration strategy
-- [CHATGPT_APPS_ANALYSIS.md](./CHATGPT_APPS_ANALYSIS.md) - ChatGPT Apps compatibility
-- [API-ENDPOINTS-EXAMPLE.md](./API-ENDPOINTS-EXAMPLE.md) - API endpoint examples
+- [01_CHATGPT_APPS_ANALYSIS.md](./PROJECT_DOCS/01_CHATGPT_APPS_ANALYSIS.md) - Analysis of ChatGPT Apps compatibility
+- [02_SWIPEONE_API_ENDPOINTS.md](./PROJECT_DOCS/02_SWIPEONE_API_ENDPOINTS.md) - API endpoint examples
+- [03_OAUTH_IMPLEMENTATION_STRATEGY.md](./PROJECT_DOCS/03_OAUTH_IMPLEMENTATION_STRATEGY.md) - OAuth implementation strategy
+- [04_CHATGPT_APP_SDK_INTEGRATION_GUIDE.md](./PROJECT_DOCS/04_CHATGPT_APP_SDK_INTEGRATION_GUIDE.md) - Master Implementation Guide for ChatGPT Apps
+- [05_ADDING_NEW_TOOLS.md](./PROJECT_DOCS/05_ADDING_NEW_TOOLS.md) - Guide for adding new tools
+- [06_MCP_PROMPTS.md](./PROJECT_DOCS/06_MCP_PROMPTS.md) - Guide for MCP prompts
 
 ## License
 
